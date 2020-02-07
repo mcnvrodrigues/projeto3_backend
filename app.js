@@ -10,6 +10,10 @@ const logger       = require('morgan');
 const path         = require('path');
 const cors         = require('cors');
 
+const session       = require('express-session');
+const passport      = require('passport');
+
+require('./configs/passport');
 
 mongoose
   .connect('mongodb://localhost/projeto3-backend', {useNewUrlParser: true})
@@ -45,6 +49,14 @@ app.set('view engine', 'hbs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(favicon(path.join(__dirname, 'public', 'images', 'favicon.ico')));
 
+app.use(session({
+  secret:"some secret goes here",
+  resave: true,
+  saveUninitialized: true
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 // default value for title local
@@ -57,9 +69,11 @@ app.use(
   })
 );
 
-
+const authRoutes = require('./routes/auth-routes');
 const index = require('./routes/index');
-app.use('/', index);
+app.use('/api', index);
+app.use('/api', authRoutes);
+
 
 
 module.exports = app;
