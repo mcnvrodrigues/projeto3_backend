@@ -60,14 +60,15 @@ app.use(passport.session());
 
 
 // default value for title local
-app.locals.title = 'Express - Generated with IronGenerator';
+app.locals.title = 'Projeto Modulo 3 - API';
 
 app.use(
   cors({
     credentials: true,
-    origin: ['http://localhost:3000'] // <== this will be the URL of our React app (it will be running on port 3000)
+    origin: [process.env.ORIGIN] 
   })
 );
+
 
 const authRoutes = require('./routes/auth-routes');
 const index = require('./routes/index');
