@@ -18,7 +18,8 @@ passport.deserializeUser((userIdFromSession, cb) => {
 });
 
 passport.use(new LocalStrategy((username, password, next) => {
-  User.findOne({ username }, (err, foundUser) => {
+  
+  User.findOne({ 'cpf': username }, (err, foundUser) => {
     if (err) {
       next(err);
       return;
@@ -36,6 +37,8 @@ passport.use(new LocalStrategy((username, password, next) => {
 
     next(null, foundUser);
   });
+
+
 }));
 
 
