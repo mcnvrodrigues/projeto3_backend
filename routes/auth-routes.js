@@ -86,7 +86,7 @@ authRoutes.post('/signup', (req, res, next) => {
                 to: email_r,
                 subject: 'Confirmação de cadastro',
                 text: message,
-                html: `<b>${message} <a href="${process.env.EMAIL_RESPONSE}/auth/${token}">aqui</a></b>`
+                html: `<b>${message} <a href="${process.env.EMAIL_RESPONSE}/${token}">aqui</a></b>`
             })
             .then(info => console.log('email enviado com sucesso :', info))
             .catch(error => console.log(error));
