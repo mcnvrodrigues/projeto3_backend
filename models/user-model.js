@@ -12,7 +12,18 @@ const userSchema = new Schema({
     enum: ['Pending_Confirmation','Active'],
   },
   // username: String,
-  password: String
+  password: String,
+  education: {
+    type: String,
+    enum: [
+            'Sem instrução', 
+            'Ensino Fundamental 1', 
+            'Ensino Fundamental 2', 
+            'Ensino Médio', 
+            'Ensino Superior',
+            'Pós Graduação'
+          ]
+  }
 }, 
 {
   timestamps: true
