@@ -11,7 +11,6 @@ const userSchema = new Schema({
     type: String,
     enum: ['Pending_Confirmation','Active'],
   },
-  // username: String,
   password: String,
   education: {
     type: String,
@@ -23,7 +22,8 @@ const userSchema = new Schema({
             'Ensino Superior',
             'Pós Graduação'
           ]
-  }
+  },
+  dependents: Number,
 }, 
 {
   timestamps: true
