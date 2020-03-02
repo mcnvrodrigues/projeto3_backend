@@ -76,6 +76,7 @@ router.post('/loanrequest', (req, res, next) => {
     type: type,
     cpf: cpf,
     status: 'Pending_Approval',
+    category: 'A',
     claimant: id
   })
   .then(loan => {
@@ -94,6 +95,18 @@ router.post('/loanrequest', (req, res, next) => {
 
 
   console.log('Amount >>>', amount);
+})
+
+router.post('/requestedloans', (req, res, next) => {
+    const id = req.body.id; 
+
+    Loan.find({claimant: id, status: 'Pending_Approval', category: 'A'})
+    .then(loans => {
+      res.status(200).json({loans})
+    })
+    .catch(err => {
+      console.log('Erro ao recuperar os emprestimos do usuário >> ', err);
+    })
 })
 
 module.exports = router;

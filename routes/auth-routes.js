@@ -135,26 +135,27 @@ authRoutes.post('/password', (req, res) => {
   const email = req.body.email;
   const psswd = req.body.psswd;
   const confPsswd = req.body.confpsswd;
+  const confirmation = req.body.confirmation;
 
-  // console.log(`email = ${email} - psswd = ${psswd} - confPsswd - ${confPsswd}`)
+  console.log(`email = ${email} - psswd = ${psswd} - confPsswd - ${confPsswd} - confirmationCode - ${confirmation}`)
   
   
   if(psswd === confPsswd) {
     const salt = bcrypt.genSaltSync(bcryptSalt);
     const hashPass = bcrypt.hashSync(psswd, salt);
     User.updateOne(
-      {"email": email},
+      {"confirmationCode": confirmation},
       { $set: { "password": hashPass } }
       )
       .then((user) => {
-        // console.log('Senha criada');
-        // res.render("auth/account-created");
+        console.log('Senha criada');
+
         res.status(200).json({user})
         return;
       })
       .catch((error) => {
         res.status(500).json({ message: 'erro ao criar senha!' });
-        // console.log("falha ao criar a senha", {layout: false});
+        console.log("falha ao criar a senha", {layout: false});
       })
   }
   else{
