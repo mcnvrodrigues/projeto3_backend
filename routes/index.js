@@ -109,4 +109,16 @@ router.post('/requestedloans', (req, res, next) => {
     })
 })
 
+router.post('/singleRequestedloan', (req, res, next) => {
+  const id = req.body.id; 
+
+  Loan.findOne({_id: id})
+  .then(loans => {
+    res.status(200).json({loans})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os emprestimos (single) do usuário >> ', err);
+  })
+})
+
 module.exports = router;
