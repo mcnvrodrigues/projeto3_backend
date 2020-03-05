@@ -60,6 +60,7 @@ router.post('/loanrequest', (req, res, next) => {
   const type = req.body.type;
   const cpf = req.body.cpf;
   const id = req.body.id;
+  const name = req.body.name;
 
   console.log('cpf >>>', cpf);
   console.log('id >>>', id);
@@ -77,7 +78,8 @@ router.post('/loanrequest', (req, res, next) => {
     cpf: cpf,
     status: 'Pending_Approval',
     category: 'A',
-    claimant: id
+    claimant: id,
+    claimantName: name
   })
   .then(loan => {
     User.updateOne({cpf}, {$push: {loans: loan._id}})
@@ -119,6 +121,19 @@ router.post('/singleRequestedloan', (req, res, next) => {
   .catch(err => {
     console.log('Erro ao recuperar os emprestimos (single) do usuário >> ', err);
   })
+})
+
+router.post('/availableloans', (req, res, next) => {
+  const id = req.body.id;
+
+  Loan.find({claimant: {$ne: id}, status: 'Pending_Approval'})
+  .then(loans => {
+    res.status(200).json({loans})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os emprestimos disponiveis >> ', err);
+  })
+
 })
 
 module.exports = router;

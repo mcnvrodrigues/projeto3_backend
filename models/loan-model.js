@@ -22,6 +22,7 @@ const loanSchema = new Schema({
     enum: ['Pending_Approval','approved'],
   },
   claimant: {type: Schema.Types.ObjectId, ref: 'User'},
+  claimantName: String,
   provider: {type: Schema.Types.ObjectId, ref: 'User'},
 }, 
 {
