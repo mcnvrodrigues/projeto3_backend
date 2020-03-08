@@ -25,6 +25,8 @@ const userSchema = new Schema({
   },
   dependents: Number,
   loans: [{type: Schema.Types.ObjectId, ref: 'Loan'}],
+  imgName: String,
+  imgPath: String,
 }, 
 {
   timestamps: true

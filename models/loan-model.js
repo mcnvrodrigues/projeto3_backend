@@ -24,6 +24,8 @@ const loanSchema = new Schema({
   claimant: {type: Schema.Types.ObjectId, ref: 'User'},
   claimantName: String,
   provider: {type: Schema.Types.ObjectId, ref: 'User'},
+  quotas: Number,
+  singleQuotaValue: Number
 }, 
 {
   timestamps: true
