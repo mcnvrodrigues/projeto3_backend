@@ -25,7 +25,8 @@ const loanSchema = new Schema({
   claimantName: String,
   provider: {type: Schema.Types.ObjectId, ref: 'User'},
   quotas: Number,
-  singleQuotaValue: Number
+  singleQuotaValue: Number,
+  claimantPhoto: { type: String, default: 'https://bulma.io/images/placeholders/96x96.png' },
 }, 
 {
   timestamps: true

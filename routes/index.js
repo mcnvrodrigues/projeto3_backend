@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const uploadCloud = require('../config/cloudinary.js');
+const uploadCloud = require('../configs/cloudinary.js');
 // require the user model
 const User  = require('../models/user-model');
 const Loan  = require('../models/loan-model');
@@ -63,6 +63,7 @@ router.post('/loanrequest', (req, res, next) => {
   const id = req.body.id;
   const name = req.body.name;
   const quotas = req.body.quotas;
+  const imgPath = req.body.imgPath;
 
   const singleQuotaValue = amount / quotas;
 
@@ -85,7 +86,8 @@ router.post('/loanrequest', (req, res, next) => {
     claimant: id,
     claimantName: name,
     quotas: quotas,
-    singleQuotaValue: singleQuotaValue
+    singleQuotaValue: singleQuotaValue,
+    claimantPhoto: imgPath
   })
   .then(loan => {
     User.updateOne({cpf}, {$push: {loans: loan._id}})
@@ -182,19 +184,31 @@ router.post('/provideloan', (req, res, next) => {
 
 })
 
-router.post('/uploadprofilephoto', uploadCloud.single('photo'), (req, res, next) => {
+router.post('/uploadprofilephoto', uploadCloud.single('imageUrl'), (req, res, next) => {
   // const { title, description } = req.body;
+
+  if (!req.file) {
+    next(new Error('No file uploaded!'));
+    return;
+  }
+
+  res.json({ secure_url: req.file.secure_url });
+});
+
+router.post('/profile', (req, res, next) => {
   const id = req.body.id;
-  const imgPath = req.file.url;
-  const imgName = req.file.originalname;
-  // const newMovie = new Movie({title, description, imgPath, imgName})
-  User.updateOne({_id: id}, { $set: {imgName: imgName, imgPath: imgPath}})
+  const state = req.body.state;
+  const city = req.body.city;
+  const imageUrl = req.body.imageUrl;
+
+  User.updateOne({"confirmationCode": id}, { $set: {imgPath: imageUrl, state: state, city: city}})
   .then(user => {
     res.status(200).json({user});
+    
   })
   .catch(error => {
     console.log(error);
   })
-});
+})
 
 module.exports = router;
