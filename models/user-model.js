@@ -28,7 +28,9 @@ const userSchema = new Schema({
   imgName: String,
   imgPath: { type: String, default: 'https://bulma.io/images/placeholders/96x96.png' },
   state: String,
-  city: String
+  city: String,
+  transaction: [{type: Schema.Types.ObjectId, ref: 'Transaction'}],
+  balance: Number
 }, 
 {
   timestamps: true

@@ -4,7 +4,9 @@ const uploadCloud = require('../configs/cloudinary.js');
 // require the user model
 const User  = require('../models/user-model');
 const Loan  = require('../models/loan-model');
-
+const Transaction = require('../models/transaction-model');
+const Installment = require('../models/installment-model');
+const trans = require('../transactions');
 
 router.post('/education', (req, res, next) => {
   const confirmation = req.body.confirmationCode;
@@ -92,6 +94,7 @@ router.post('/loanrequest', (req, res, next) => {
   .then(loan => {
     User.updateOne({cpf}, {$push: {loans: loan._id}})
     .then((user) => {
+      trans.operation('Request',loan.amount, loan.rate, loan.claimant, loan._id);
       console.log('sucesso ao gravar loan ao usuario');
       res.status(200).json({user})
     })
@@ -102,6 +105,8 @@ router.post('/loanrequest', (req, res, next) => {
   .catch(err => {
     console.log('erro ao criar Loan : ', err);
   })
+
+ 
 
 
   console.log('Amount >>>', amount);
@@ -171,12 +176,20 @@ router.post('/availableloans', (req, res, next) => {
 router.post('/provideloan', (req, res, next) => {
   const id = req.body.id;
   const provider = req.body.provider;
+  var loan = null;
 
-  console.log(`id: ${id} - provider: ${provider}`)
+  console.log(`id: ${id} - provider: ${provider}`);
+
+  console.log('loan 2 >>',loan);
 
   Loan.updateOne({_id: id}, { $set: {provider: provider, status: 'approved'}})
   .then(loan => {
-    res.status(200).json({loan})
+    Loan.findOne({_id: id})
+    .then(loan_p => {
+      trans.operation('Investment',loan_p.amount, loan_p.rate, provider, id);
+      res.status(200).json({loan})
+    })
+    
   })
   .catch(err => {
     console.log('Erro ao recuperar os emprestimos disponiveis >> ', err);
@@ -208,6 +221,18 @@ router.post('/profile', (req, res, next) => {
   })
   .catch(error => {
     console.log(error);
+  })
+})
+
+router.post('/statements', (req, res, next) => {
+  const id = req.body.id; 
+
+  Transaction.find({userId: id})
+  .then(trans => {
+    res.status(200).json({trans})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os emprestimos do usuário >> ', err);
   })
 })
 
