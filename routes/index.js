@@ -53,7 +53,7 @@ router.post('/dependents', (req, res, next) => {
 
 router.post('/loanrequest', (req, res, next) => {
   const amount = req.body.amount;
-  const installments = req.body.installments;
+  const installments = Number(req.body.installments);
   const dueDate = req.body.dueDate;
   const rate = req.body.rate;
   const iof = req.body.iof;
@@ -71,7 +71,7 @@ router.post('/loanrequest', (req, res, next) => {
 
   console.log('cpf >>>', cpf);
   console.log('id >>>', id);
-  console.log('installments error value >>>', installments);
+  console.log('installments error value >>>', typeof(installments));
 
   Loan.create({
     amount: amount,
