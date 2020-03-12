@@ -71,6 +71,7 @@ router.post('/loanrequest', (req, res, next) => {
 
   console.log('cpf >>>', cpf);
   console.log('id >>>', id);
+  console.log('installments error value >>>', typeof installments);
 
   Loan.create({
     amount: amount,
