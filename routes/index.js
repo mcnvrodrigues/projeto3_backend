@@ -6,6 +6,7 @@ const User  = require('../models/user-model');
 const Loan  = require('../models/loan-model');
 const Transaction = require('../models/transaction-model');
 const Installment = require('../models/installment-model');
+const install = require('../installments');
 const trans = require('../transactions');
 
 router.post('/education', (req, res, next) => {
@@ -68,7 +69,8 @@ router.post('/loanrequest', (req, res, next) => {
   const imgPath = req.body.imgPath;
 
   const singleQuotaValue = amount / quotas;
-
+  
+  
   console.log('cpf >>>', cpf);
   console.log('id >>>', id);
 
@@ -92,9 +94,14 @@ router.post('/loanrequest', (req, res, next) => {
     claimantPhoto: imgPath
   })
   .then(loan => {
+    //processo de criação de parcelas
+    install.createInstallments(installments, installmentAmount, dueDate, iof, cet, loan._id);
+
     User.updateOne({cpf}, {$push: {loans: loan._id}})
     .then((user) => {
+      // transação de request
       trans.operation('Request',loan.amount, loan.rate, loan.claimant, loan._id);
+      
       console.log('sucesso ao gravar loan ao usuario');
       res.status(200).json({user})
     })
@@ -105,6 +112,8 @@ router.post('/loanrequest', (req, res, next) => {
   .catch(err => {
     console.log('erro ao criar Loan : ', err);
   })
+
+  
 
  
 
@@ -233,6 +242,19 @@ router.post('/statements', (req, res, next) => {
   })
   .catch(err => {
     console.log('Erro ao recuperar os emprestimos do usuário >> ', err);
+  })
+})
+
+router.post('/installment', (req, res, next) => {
+  const id = req.body.id; 
+
+  Installment.find({loan: id})
+  .sort({installmentNumber: 1})
+  .then(install => {
+    res.status(200).json({install})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os dados da parcela >> ', err);
   })
 })
 
