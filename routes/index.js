@@ -9,6 +9,8 @@ const Installment = require('../models/installment-model');
 const install = require('../installments');
 const trans = require('../transactions');
 
+const pagarme = require('pagarme');
+
 router.post('/education', (req, res, next) => {
   const confirmation = req.body.confirmationCode;
   const degree = req.body.degree;
@@ -257,5 +259,51 @@ router.post('/installment', (req, res, next) => {
     console.log('Erro ao recuperar os dados da parcela >> ', err);
   })
 })
+
+router.post('/singleinstallment', (req, res, next) => {
+  const id = req.body.id; 
+
+  Installment.findOne({_id: id})  
+  .then(install => {
+    res.status(200).json({install})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os dados da parcela >> ', err);
+  })
+})
+
+router.post('/paymentconfirmation', (req, res, next) => {
+  const id = req.body.id; 
+  const amount_v = req.body.amount;
+  const cardnumber = req.body.card_number.replace(/[^\d]+/g,'');
+  const cardholdername = req.body.card_holder_name;
+  const cardexpirationdate = req.body.card_expiration_date;
+  const cardcvv = req.body.card_cvv;
+
+  console.log('id >> ',  id);
+  console.log('amount >>',  amount_v);
+  console.log('card_number >>',  cardnumber);
+  console.log('card_holder_name >>',  cardholdername);
+  console.log('card_expiration_date >>',  cardexpirationdate);
+  console.log('card_cvv >> ',  cardcvv);
+
+
+  pagarme.client.connect({ api_key: process.env.PAGARMEKEY })
+  .then(client => client.transactions.create({
+    amount: Math.floor(amount_v),
+    card_number: cardnumber,
+    card_holder_name: cardholdername,
+    card_expiration_date: cardexpirationdate,
+    card_cvv: cardcvv,
+  }))
+  .then(transactions => {
+    // res.send(transactions)
+    console.log(transactions)
+  })
+  .catch(error => res.send(error));
+
+  
+})
+
 
 module.exports = router;
