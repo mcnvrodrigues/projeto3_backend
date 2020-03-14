@@ -286,6 +286,7 @@ router.post('/paymentconfirmation', (req, res, next) => {
   console.log('card_holder_name >>',  cardholdername);
   console.log('card_expiration_date >>',  cardexpirationdate);
   console.log('card_cvv >> ',  cardcvv);
+  console.log('postback_url >> ', process.env.REACT_APP_GENERAL + 'postback')
 
 
   pagarme.client.connect({ api_key: process.env.PAGARMEKEY })
@@ -294,16 +295,38 @@ router.post('/paymentconfirmation', (req, res, next) => {
     card_number: cardnumber,
     card_holder_name: cardholdername,
     card_expiration_date: cardexpirationdate,
-    card_cvv: cardcvv,
+    card_cvv: cardcvv
   }))
   .then(transactions => {
     // res.send(transactions)
+    Installment.updateOne({_id: id}, {$set: {status: 'Paid'}})
+    .then(install => {
+      console.log('Parcela paga >> ', install)
+    })
+    .catch(err => console.log('erro ao atualizar pagamento da parcela >>', err))
+
+    Installment.findOne({_id: id})
+    .then(install => {
+      Loan.findOne({_id: install.loan})
+      .then(loan => {
+        User.updateOne({_id: loan.provider}, {$inc: {balance: amount_v}})
+        .then(user => {
+          console.log(user);
+        })
+      })
+    })
+
     console.log(transactions)
   })
-  .catch(error => res.send(error));
-
+  .catch(error => {
+    res.send(error);
+    console.log('Erro ao pagar >>', error)
+  });
   
 })
+
+
+
 
 
 module.exports = router;
