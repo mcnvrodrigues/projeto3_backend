@@ -5,7 +5,7 @@ const installmentSchema = new Schema({
   installmentNumber: Number,
   installments: Number,
   installmentAmount: Number,
-  date: Number,
+  date: Date,
   iof: Number,  
   cet: Number,
   status:  {
