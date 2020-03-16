@@ -55,7 +55,8 @@ authRoutes.post('/signup', (req, res, next) => {
                 nome:nome_r,
                 confirmationCode: token,
                 status: 'Pending_Confirmation',
-                password: ''
+                password: '',
+                balance: 0
             });
   
             aNewUser.save(err => {

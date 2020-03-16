@@ -6,7 +6,11 @@ const User  = require('../models/user-model');
 const Loan  = require('../models/loan-model');
 const Transaction = require('../models/transaction-model');
 const Installment = require('../models/installment-model');
+const install = require('../installments');
 const trans = require('../transactions');
+const Message = require('../models/message-model');
+
+const pagarme = require('pagarme');
 
 router.post('/education', (req, res, next) => {
   const confirmation = req.body.confirmationCode;
@@ -68,7 +72,8 @@ router.post('/loanrequest', (req, res, next) => {
   const imgPath = req.body.imgPath;
 
   const singleQuotaValue = amount / quotas;
-
+  
+  
   console.log('cpf >>>', cpf);
   console.log('id >>>', id);
   console.log('installments error value >>>', typeof installments);
@@ -93,9 +98,14 @@ router.post('/loanrequest', (req, res, next) => {
     claimantPhoto: imgPath
   })
   .then(loan => {
+    //processo de criação de parcelas
+    install.createInstallments(installments, installmentAmount, dueDate, iof, cet, loan._id);
+
     User.updateOne({cpf}, {$push: {loans: loan._id}})
     .then((user) => {
+      // transação de request
       trans.operation('Request',loan.amount, loan.rate, loan.claimant, loan._id);
+      
       console.log('sucesso ao gravar loan ao usuario');
       res.status(200).json({user})
     })
@@ -106,6 +116,8 @@ router.post('/loanrequest', (req, res, next) => {
   .catch(err => {
     console.log('erro ao criar Loan : ', err);
   })
+
+  
 
  
 
@@ -188,13 +200,40 @@ router.post('/provideloan', (req, res, next) => {
     Loan.findOne({_id: id})
     .then(loan_p => {
       trans.operation('Investment',loan_p.amount, loan_p.rate, provider, id);
-      res.status(200).json({loan})
+      res.status(200).json({loan});
+
+
+      User.findOne({_id: provider})
+      .then(user => {
+        Message.create({
+          info: 'O seu emprestimo foi aprovado por ' + user.nome + '. Verifique suas parcelas em Pagamento',
+          status: 'Pending',
+          receiver: loan_p.claimant,
+          provider: user.nome
+        })
+        .then(msg => {
+          console.log('Mensagem enviada com sucesso >>', msg.info)
+        })
+        .catch(err => {
+          console.log('Mensagem não enviada!')
+        })
+      })
+      .catch(err => {
+        console.log('Erro ao encontrar usuario /provideloan')
+      })
     })
+    .catch(err => {
+      console.log('Erro ao procurar por usuario /provideloan')
+    })
+
+
     
   })
   .catch(err => {
     console.log('Erro ao recuperar os emprestimos disponiveis >> ', err);
   })
+
+
 
 })
 
@@ -236,5 +275,132 @@ router.post('/statements', (req, res, next) => {
     console.log('Erro ao recuperar os emprestimos do usuário >> ', err);
   })
 })
+
+router.post('/installment', (req, res, next) => {
+  const id = req.body.id; 
+
+  Installment.find({loan: id})
+  .sort({installmentNumber: 1})
+  .then(install => {
+    res.status(200).json({install})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os dados da parcela >> ', err);
+  })
+})
+
+router.post('/singleinstallment', (req, res, next) => {
+  const id = req.body.id; 
+
+  Installment.findOne({_id: id})  
+  .then(install => {
+    res.status(200).json({install})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os dados da parcela >> ', err);
+  })
+})
+
+router.post('/paymentconfirmation', (req, res, next) => {
+  const id = req.body.id; 
+  const amount_v = req.body.amount;
+  const cardnumber = req.body.card_number.replace(/[^\d]+/g,'');
+  const cardholdername = req.body.card_holder_name;
+  const cardexpirationdate = req.body.card_expiration_date;
+  const cardcvv = req.body.card_cvv;
+
+  console.log('id >> ',  id);
+  console.log('amount >>',  amount_v);
+  console.log('card_number >>',  cardnumber);
+  console.log('card_holder_name >>',  cardholdername);
+  console.log('card_expiration_date >>',  cardexpirationdate);
+  console.log('card_cvv >> ',  cardcvv);
+  console.log('postback_url >> ', process.env.REACT_APP_GENERAL + 'postback')
+
+
+  pagarme.client.connect({ api_key: process.env.PAGARMEKEY })
+  .then(client => client.transactions.create({
+    amount: Math.floor(amount_v),
+    card_number: cardnumber,
+    card_holder_name: cardholdername,
+    card_expiration_date: cardexpirationdate,
+    card_cvv: cardcvv
+  }))
+  .then(transactions => {
+    // res.send(transactions)
+    
+
+    Installment.updateOne({_id: id}, {$set: {status: 'Paid'}})
+    .then(install => {
+      console.log('Parcela paga >> ', install)
+    })
+    .catch(err => console.log('erro ao atualizar pagamento da parcela >>', err))
+
+    Installment.findOne({_id: id})
+    .then(install => {
+      Loan.findOne({_id: install.loan})
+      .then(loan => {
+        trans.operation('Payment',amount_v, loan.rate, loan.claimant, loan._id);
+        User.updateOne({_id: loan.provider}, {$inc: {balance: amount_v}})
+        .then(user => {
+          console.log(user);
+        })
+
+        User.findOne({_id: loan.claimant})
+        .then(user => {
+          Message.create({
+            info: 'Você acaba de receber um pagamento do emprestimo que você concedeu para ' + user.nome + '. ',
+            status: 'Pending',
+            receiver: loan.provider,
+            provider: user.nome
+          })
+          .then(msg => {
+            console.log('Mensagem enviada com sucesso >>', msg.info)
+          })
+          .catch(err => {
+            console.log('Mensagem não enviada!')
+          })
+        })
+        .catch(err => {
+          console.log('Erro ao encontrar usuario /provideloan')
+        })
+
+      })
+    })
+
+    console.log(transactions)
+  })
+  .catch(error => {
+    res.send(error);
+    console.log('Erro ao pagar >>', error)
+  });
+  
+})
+
+router.post('/messagesreq', (req, res, next) => {
+  const id = req.body.id; 
+
+  Message.find({receiver: id, status:'Pending'})  
+  .then(msg => {
+    res.status(200).json({msg})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os dados da Mensagem >> ', err);
+  })
+})
+
+router.post('/messagesres', (req, res, next) => {
+  const id = req.body.id; 
+
+  Message.updateOne({_id: id}, {$set: {status: 'Read'}})  
+  .then(msg => {
+    res.status(200).json({msg})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os dados da Mensagem >> ', err);
+  })
+})
+
+
 
 module.exports = router;
