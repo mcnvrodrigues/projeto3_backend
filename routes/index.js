@@ -8,6 +8,7 @@ const Transaction = require('../models/transaction-model');
 const Installment = require('../models/installment-model');
 const install = require('../installments');
 const trans = require('../transactions');
+const Message = require('../models/message-model');
 
 const pagarme = require('pagarme');
 
@@ -199,13 +200,40 @@ router.post('/provideloan', (req, res, next) => {
     Loan.findOne({_id: id})
     .then(loan_p => {
       trans.operation('Investment',loan_p.amount, loan_p.rate, provider, id);
-      res.status(200).json({loan})
+      res.status(200).json({loan});
+
+
+      User.findOne({_id: provider})
+      .then(user => {
+        Message.create({
+          info: 'O seu emprestimo foi aprovado por ' + user.nome + '. Verifique suas parcelas em Pagamento',
+          status: 'Pending',
+          receiver: loan_p.claimant,
+          provider: user.nome
+        })
+        .then(msg => {
+          console.log('Mensagem enviada com sucesso >>', msg.info)
+        })
+        .catch(err => {
+          console.log('Mensagem não enviada!')
+        })
+      })
+      .catch(err => {
+        console.log('Erro ao encontrar usuario /provideloan')
+      })
     })
+    .catch(err => {
+      console.log('Erro ao procurar por usuario /provideloan')
+    })
+
+
     
   })
   .catch(err => {
     console.log('Erro ao recuperar os emprestimos disponiveis >> ', err);
   })
+
+
 
 })
 
@@ -287,6 +315,7 @@ router.post('/paymentconfirmation', (req, res, next) => {
   console.log('card_holder_name >>',  cardholdername);
   console.log('card_expiration_date >>',  cardexpirationdate);
   console.log('card_cvv >> ',  cardcvv);
+  console.log('postback_url >> ', process.env.REACT_APP_GENERAL + 'postback')
 
 
   pagarme.client.connect({ api_key: process.env.PAGARMEKEY })
@@ -295,16 +324,83 @@ router.post('/paymentconfirmation', (req, res, next) => {
     card_number: cardnumber,
     card_holder_name: cardholdername,
     card_expiration_date: cardexpirationdate,
-    card_cvv: cardcvv,
+    card_cvv: cardcvv
   }))
   .then(transactions => {
     // res.send(transactions)
+    
+
+    Installment.updateOne({_id: id}, {$set: {status: 'Paid'}})
+    .then(install => {
+      console.log('Parcela paga >> ', install)
+    })
+    .catch(err => console.log('erro ao atualizar pagamento da parcela >>', err))
+
+    Installment.findOne({_id: id})
+    .then(install => {
+      Loan.findOne({_id: install.loan})
+      .then(loan => {
+        trans.operation('Payment',amount_v, loan.rate, loan.claimant, loan._id);
+        User.updateOne({_id: loan.provider}, {$inc: {balance: amount_v}})
+        .then(user => {
+          console.log(user);
+        })
+
+        User.findOne({_id: loan.claimant})
+        .then(user => {
+          Message.create({
+            info: 'Você acaba de receber um pagamento do emprestimo que você concedeu para ' + user.nome + '. ',
+            status: 'Pending',
+            receiver: loan.provider,
+            provider: user.nome
+          })
+          .then(msg => {
+            console.log('Mensagem enviada com sucesso >>', msg.info)
+          })
+          .catch(err => {
+            console.log('Mensagem não enviada!')
+          })
+        })
+        .catch(err => {
+          console.log('Erro ao encontrar usuario /provideloan')
+        })
+
+      })
+    })
+
     console.log(transactions)
   })
-  .catch(error => res.send(error));
-
+  .catch(error => {
+    res.send(error);
+    console.log('Erro ao pagar >>', error)
+  });
   
 })
+
+router.post('/messagesreq', (req, res, next) => {
+  const id = req.body.id; 
+
+  Message.find({receiver: id, status:'Pending'})  
+  .then(msg => {
+    res.status(200).json({msg})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os dados da Mensagem >> ', err);
+  })
+})
+
+router.post('/messagesres', (req, res, next) => {
+  const id = req.body.id; 
+
+  Message.updateOne({_id: id}, {$set: {status: 'Read'}})  
+  .then(msg => {
+    res.status(200).json({msg})
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar os dados da Mensagem >> ', err);
+  })
+})
+
 
 
 module.exports = router;
