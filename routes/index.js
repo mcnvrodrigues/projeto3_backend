@@ -268,6 +268,7 @@ router.post('/statements', (req, res, next) => {
   const id = req.body.id; 
 
   Transaction.find({userId: id})
+  .sort({createdAt: -1})
   .then(trans => {
     res.status(200).json({trans})
   })
