@@ -401,6 +401,18 @@ router.post('/messagesres', (req, res, next) => {
   })
 })
 
+router.post('/loginbyconfirmationcode', (req, res, next) => {
+  const id = req.body.id;
+
+  User.findOne({ "confirmationCode": id })
+  .then(user => {
+    res.status(200).json({user});
+  })
+  .catch(err => {
+    console.log('Erro ao recuperar o usuario logado, loginbyconfirmationcode ', err);
+  })
+})
+
 
 
 module.exports = router;
